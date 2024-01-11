@@ -1,36 +1,15 @@
 # Introduction
-The purpose of this document is to explain how VOID Linux Distribution was installed on my computer.  The purpose of 
-the section is to product a functioning system where the user can log into a terminal .  There will be many steps 
-including configuring and formatting the drive, setting the date, locale and installing the kernel, boot loader 
-and basic software including a shell.
+The purpose of the first section
+is to allow the user to boot in a terminal which includes configuring and formatting the drive, configuring the 
+make.config, date, locale and installing the kernel, boot loader and basic software including a shell.
+                                                                                                                                                            | 
+# Instructions
 
-# Instructions 
+## PreChroot
 
-## Basic Configuration
+### Verify the Network is Functioning
 
-### Booting the Live Distribution
-
-<b>User Name: </b>root<br>
-<b>Password: </b>voidlinux
-
-<b>Action</b> -- Start the computer with the USB Stick and login root <br>
-<b>Result<b> -- The result will a computer that has a console where the current user is root
-
-The directions are found in the Void Handbook at: 
-[Gentoo Handbook](https://docs.voidlinux.org/installation/guides/chroot.html)
-
-### Create the Mount Point
-
-Script to create the Gentoo the installation transferred using USB.
-
-| Task                                 | Description                                          |
-|--------------------------------------|------------------------------------------------------|
-| mkdir /mnt/transfer                  | Creates a mount point                                |
-| mount /dev/sda1 /mnt/transfer        | Starts the root of the filesystem at the mount point |
-
-### Verify the Network is Functioning 
-
-The ping has always worked for me, so I assuming it works when any computer has a wired connection.
+The ping has always worked for me, so I assuming it works when any computer has a wired connection..
 
 <b>Action</b> -- ping -c 2 -q gentoo.org<br>
 <b>Result</b> -- Two packages should have been transferred.
@@ -39,75 +18,252 @@ The ping has always worked for me, so I assuming it works when any computer has 
 
 #### Create the Filesystems and Adding the labels
 
-This section will assume that the partitions have been created and the disk will be configured with correct label and
-filesystem then formatted.
+This section will assume that the partitions have been created and the disk will be configured with correct label and filesystem them formatted.
 
 <b>Action</b> -- Execute the script 01-Creating-File=Systems.sh<br>
 <b>Result</b> -- Verify the drive are correct using "lsblk -f"
 
-### Mounting the Partitions
+<b>The Swap Label is not being attached to the partition, but has not affected the installation and is a minor prbolem.</b>
+
+### Activating swap on
+
+<b>Action</b> -- Execute the script 02_Activate-Swap-Partition.sh<br>
+<b>Result</b> -- "swapon --summary" and verify there is an entry
+
+### Mounting the Root Partition
 
 <b>Action</b> -- Execute the script 02_Mounting-File-System.sh<br>
-<b>Result</b> -- df -h to see the new mount points
+<b>Result</b> -- df -h /mnt/gentoo and verify /mnt/gentoo exist
 
-## Basic Installation
+### Setting the Date / Time
 
-### Install The Software
+By running the script 03_Setting-the-Data.sh the hardware clock and system time will be synchronized.
 
-Install the base_system needed to start working and configuring the 
-software installed by the user.
+<b>Action</b> -- Execute the script 03_Setting-the-Date.sh<br>
+<b>Result</b> -- Verify by getting the current time ( UTC Timezone ) from the web
 
-<b>Action: </b>Execute 03_Base_installation.sh
+### Downloading and installing a Stage 3 Tarball
 
-### Chroot 
+| Consideration         | Reasons                                                                             |
+|-----------------------|-------------------------------------------------------------------------------------|
+| Using No Multilib     | Steam seem to work very will with flatpaks.  Tried when installing Funtoo.  Also I want sytem where the infrstrcuture is simplifed and I a lot of appications and developer libraries           |
+| Using OpenRC          | Unix philosophy.                                                                    |
+| Using GCC             | I went with GCC since first installation and I do not know mush about clang         |
+| Using default profile | This is a learning process so I have decided to skip the hardened, desktop profiles |
 
-xchroot
+<b>Action</b> -- Execute the script 04_Install_Stage_3.sh<br>
+<b>Result</b> -- Verify that /mnt/gentoo has the normal unix directories 
 
-| Capability      | Description                                                                |
-|-----------------|----------------------------------------------------------------------------|
-| Mount subsystem | mount the /var, /tmp, /usr automatically provided they are listed in fstab |
- | Mount           | mount automatically proc,sysfs, /dev /run                                  | 
+### Configuring Compile Options
 
-<b>Action: </b> execute 04_Chroot.sh
+[GCC Optimization](https://wiki.gentoo.org/wiki/GCC_optimization)
 
-### Configuring the System
+CFlags   -- Optimization flags for GCC
+CXXFlags -- Optimization flags for G++
 
-<ol>Configuration
-<li>Provide the hostname in /etc/hostname</li>
-<li>Uncomment the desired locale and run xbps-reconfigure -f glib-locales</li>
-<li>Select local from /etc/default/locales</li>
+For the -march use the value "native" selects the target architecture<br>
+For the optimizations select -O2 since -03 has caused issues for general use<br>
+For MakeOpts --jobs -- How many parallel compilations should happen when installing a package 
+    `min ( At least 2 Gigabtyes Per Core or output of nproc  )`
+
+<b>No actions defined for this informational section</b>
+
+### Configuring make.conf and Creating gentoo.conf
+
+In this section the following done 
+> * Select number of parallel computations 
+> * Find and Configure the best mirros
+> * Copy the files needed for getting metadata from the mirrors
+
+GENTOO_MIRRORS -- Where the source and binary builds metadata are retrieved.
+
+<b>Action</b>Execute 05_Modify_Make_Conf.sh <br>
+<b>Result</b>Verify that /mnt/gentoo/portage/make.conf has march=native<br>
+<b>Action</b>Execute 05_Create_Repos_Conf.sh<br>
+<b>Result</b>Verify that /mnt/gentoo/etc/portage/repos.conf/gentoo.conf exist
+
+### Copy DNS Information to /etc
+
+<b>Action</b> Execute 06_Copy_DNS_File.sh
+<b>Result</b> No test defined.
+
+### Mounting the necessary filesystems
+
+| Filesystem | Description                                                                                |
+|------------|--------------------------------------------------------------------------------------------|
+| /proc/     | pseudo filesystem from which the linux kernel exposes information to the environment       |
+| /sys/      | pseudo filesystem which was meant to replace /proc and is more structed                    |
+| /dev/      | A regular files system partially managed by a Linux device mangager ( example udev )       |
+| /run/      | A temporary file system used for the files genernated at run time ( ex. PID files or locks |
+
+<b>Action</b> Execute 07_Mount_FileSystems.sh
+
+## Chroot Operations 
+
+### Entering the New Environment
+
+Root will be changed from the USB to the drive where GENTOO will be installed.  To gain access the install scripts 
+follow the instructions in the section : "Create the Mount Point" 
+
+<b>Actual</b>:  execute . ./10_After_Chroot.sh 
+<b>Reason</b>: Verify the prompt starts with : (chroot) (livecd)
+
+## Post Chroot
+
+### Mount the Boot Partition
+
+Important when compiling the kernel and installing the bootloader
+
+<b>Actual</b>: Execute 11_Mount_Boot.sh
+<b>Reason</b>: Execute df and verify /boot is present
+
+### Update the Gentoo Ebuild Directory
+
+Update the Gentoo Ebuild directory with the metadata about the ebuilds available
+
+<b>Action</b>: Execute 12_Ebuild_Repository.sh<br>
+<b>Result</b>: Make sure there was no error messages
+
+### Choosing the right profile and Update the World
+ 
+A profile specifies the USE, CFLAGS and other important variables.  It also locks the system to a certain range of 
+package versions.  An example of the profile is the one that I have selected: 
+
+@world set = system set + selected set
+system set = packages required for a standard software package to run
+select set = installed by the user
+
+The list of profiles can be viewed using : eselect profile list<br>
+The list of use variables: root #less /var/db/repos/gentoo/profiles/use.desc
+
+<b>Action</b> Execute 13_Update_world.sh
+<b>Result</b> Verify that there are no errors
+
+### Configure for the Timezone
+
+Select a timezone from /usr/share/zoneinfo.  An Example my timezone is US/Eastern
+
+<b>Action</b> Execute 14_Timezone.sh
+<b>Result</b> Verify there are no errors
+
+### Configure for the locale
+
+A locale is the the language that the computer will use for the display and the rules to work with :
+<ul>
+    <li>Sorting the Strings</li>
+    <li>Display the date and times using the correct format</li>
+</ul>
+
+<b>Action</b> Execute 15_Locale.sh
+<b>Result</b> verify that /etc/env.d/02locale has the locale selected
+
+### Configure the kernel
+
+> * Installing the firmware.  The firmware is need for wireless, video chips and more to make the system 
+fully functional.  kernel symbols that are built as modules (M) will load their associated firmware files from the 
+filesystem when they are loaded by the kernel. It is not necessary to include the device's firmware files into the 
+kernel's binary image for symbols loaded as modules.
+
+> * Full Automation Approach: Distribution Kernels
+> * * A Distribution Kernel is used to configure, automatically build, and install the Linux kernel, 
+      its associated modules, and (optionally, but enabled by default) an initramfs file
+> * * Future kernel updates are fully automated since they are handled through the package manager
+
+I have selected Full Automation Approach since it is easiest and one the system is up and running I can have backup 
+when I configure my own kernel.
+
+| Command                                                       | Description                                   |
+|---------------------------------------------------------------|-----------------------------------------------|
+| emerge --depclean                                             | Reclaim disk pages by trimming stale packages |
+| emerge --prune sys-kernel/gentoo-kernel sys-kernel/gentoo-bin | clean up old kernel versions                  |
+
+<b>Action</b>: Execute 16_Install_firmware.sh
+<b>Action</b>: Execute 17_kernel.sh
+
+### Copy the fstab
+
+To describe how disk partitions, various other block devices, or remote file systems should be mounted into the 
+file system.
+
+The script will copy the aleread create fstab to /etc/fstab.
+
+<b>Action</b> execute 18_Create_fstab.h
+
+### Configure the network
+
+DHCP -- Dynamically assigns unique IP addresses for devices on a network
+
+<ol>Steps
+    <li>Create a hostname and save to the hostname file </li>
+    <li>install and "enable" and "start" the DHCP</li>
+    <li>Configure the /etc/hosts</li>
 </ol>
 
-Note: If the local is "en_Us" then the second step does not need to be done
+<b>Action</b> execute 19_Configure_Network.sh
 
-<b>Action: </b>Execute 05_Configuration.sh
-### Set the root password
+### Root Password
 
-<b>Action: <b>Execute 06_Change_Root_Password.sh
+Change the root password since the root's password is scrambled in the /etc/shadow
 
-### Configure the FSTAB
+<b>Action:</b> execute 19_Change_Root_Password
 
-Based on the instructions from void linux added a tmpfs mount
-point.  tmpfs is closely related to a ramdisk, but grow/shrink 
-as needed.  tmpfs is used for the tmp directory and for shared 
-memory.
+### Installing System Tools
 
-<b>Action: </b>Execute 07_Create_fstab.sh 
+Wireless will not be installed until I need it.
 
-### Installing Grub
+| Tool                 | Description                                  | emerge                                                      |
+|----------------------|----------------------------------------------|-------------------------------------------------------------|
+| sysklogd             | Default Logger works out of box              | emerge app-admin/sysklogd                                   |
+| cron                 | Based on the original cron with security     | emerge sys-process/cronnie<br> rc-update add cronie default |
+| locate               | mlocate is a locate/updatedb implementation. | emerge sys-apps/mlocate                                     |
+| time synchronization | Update Time via NTP                          | emerge net-misc/chrony<br>rc-update add chronyd default     |
+| File System Tools    | For integrity/creating                       | emerge sys-fs/e2fsprogs                                     | 
 
-<b>Action: </b>Execute 08_Boot_loader_configuration 
+ssh is already installed, but the following needs to be completed
+<ol>
+    <li>Add sshd init script in default run level : rc-update add sshd defautl </li>
+</ol>
 
-### Finalization 
+<b>Action: </b> execute 20_Tools.sh
 
-Finishes the installation.  Note xpbs-reconfigure will call grub-mkconfig installed of the user calling the 
-command manually
+### Install and Configure Boot Manager
 
-### Sbhutdown
+For the Boot Manager Grub will be used since it is the standard
 
-Umount the new directory of the distro and reboots
-
-
+<b>Action</b>Execute 21_boot_loader.sh
+<b>Action</b>Execute 21_boot_loader_configure.sh
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+# Jira Issues
 
