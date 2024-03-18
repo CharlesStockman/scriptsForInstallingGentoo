@@ -20,7 +20,7 @@ The ping has always worked for me, so I assuming it works when any computer has 
 
 This section will assume that the partitions have been created and the disk will be configured with correct label and filesystem them formatted.
 
-<b>Action</b> -- Execute the script 01-Creating-File=Systems.sh<br>
+<b>Action</b> -- Execute the script 01-Creating-File-Systems.sh<br>
 <b>Result</b> -- Verify the drive are correct using "lsblk -f"
 
 <b>The Swap Label is not being attached to the partition, but has not affected the installation and is a minor prbolem.</b>
