@@ -15,10 +15,6 @@ The purpose of this document is to explain how Gentoo was installed on my comput
 | Init Systems                     | OpenRC                                                                                            
 | Boot System                      | Grub                                                                                                                                                                                |
 
-## Work Arounds 
-
-04_Install_Stage_3.sh is not get the stage3 frin the web.  The work around is to add the stage3 file to the boot drive and then the 04_Install_Stage_3.sh has been modified to work with that file.
-
 ## Tips for a Successful Install
 
 | Suggestion                            | Description                                                                                                                                                                             |
